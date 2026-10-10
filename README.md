@@ -1,4 +1,6 @@
-# InternTrack Web (Week 1 prototype)
+# InternTrack
+
+## Week 1 prototype
 
 InternTrack is a React + Vite prototype for tracking internship applications. It uses sample data and simulated authentication; there is no backend yet.
 
@@ -43,7 +45,7 @@ Application records are held in memory and reset when the page is refreshed. The
 
 ## GitHub
 
-Create an empty repository on GitHub, then run these commands from the project folder. Replace `<your-username>` with your GitHub username:
+For a fresh GitHub repository, create an empty repository first, then use these commands from the project folder. Replace `<your-username>` with your GitHub username:
 
 ```powershell
 git init
