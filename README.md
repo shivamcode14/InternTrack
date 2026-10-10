@@ -34,14 +34,14 @@ Application records are held in memory and reset when the page is refreshed. The
 
 ## Week 1 completion checklist
 
-- [ ] Add, edit, and delete applications; validation messages appear for invalid input
-- [ ] Search and status/source filters work together; clearing filters restores the list
-- [ ] Dashboard counts, recently added records, and upcoming dates update after changes
-- [ ] Login and registration validate input, and protected routes redirect to login
-- [ ] The layout remains usable at phone width
-- [ ] `npm run build` completes successfully
+- [x] Add, edit, and delete applications; validation messages appear for invalid input
+- [x] Search and status/source filters work together; clearing filters restores the list
+- [x] Dashboard counts, recently added records, and upcoming dates update after changes
+- [x] Login and registration validate input, and protected routes redirect to login
+- [x] The layout remains usable at phone width
+- [x] `npm run build` completes successfully
 - [ ] Screenshots captured for the dashboard, application list, validation errors, and mobile layout
-- [ ] Project pushed to your GitHub repository
+- [x] Project pushed to your GitHub repository
 
 ## GitHub
 
