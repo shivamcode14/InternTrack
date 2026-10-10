@@ -1,0 +1,13 @@
+// Fake data for the Week 1 prototype. Field names match the DB schema in the report.
+export const sampleApplications = [
+  { id: 1, companyName: "Infosys", jobTitle: "Software Engineer Intern", jobUrl: "https://example.com/jobs/1", source: "Company Website", status: "APPLIED", applicationDate: "2026-09-28", followUpDate: "2026-10-14", interviewDate: "", notes: "Applied via careers page." },
+  { id: 2, companyName: "TCS", jobTitle: "Digital Intern", jobUrl: "https://example.com/jobs/2", source: "Campus", status: "ASSESSMENT", applicationDate: "2026-09-25", followUpDate: "2026-10-12", interviewDate: "", notes: "Online aptitude test link in email." },
+  { id: 3, companyName: "Zoho", jobTitle: "Member Technical Staff Intern", jobUrl: "https://example.com/jobs/3", source: "LinkedIn", status: "INTERVIEW", applicationDate: "2026-09-20", followUpDate: "", interviewDate: "2026-10-16T11:00", notes: "Technical round on Google Meet." },
+  { id: 4, companyName: "Wipro", jobTitle: "Project Engineer Trainee", jobUrl: "", source: "Naukri", status: "SAVED", applicationDate: "", followUpDate: "2026-10-18", interviewDate: "", notes: "Apply before deadline." },
+  { id: 5, companyName: "Freshworks", jobTitle: "Frontend Intern", jobUrl: "https://example.com/jobs/5", source: "LinkedIn", status: "APPLIED", applicationDate: "2026-10-02", followUpDate: "2026-10-20", interviewDate: "", notes: "React + TypeScript role." },
+  { id: 6, companyName: "Cognizant", jobTitle: "Programmer Analyst Trainee", jobUrl: "https://example.com/jobs/6", source: "Indeed", status: "REJECTED", applicationDate: "2026-09-10", followUpDate: "", interviewDate: "", notes: "Rejected after assessment." },
+  { id: 7, companyName: "Razorpay", jobTitle: "Backend Intern", jobUrl: "https://example.com/jobs/7", source: "Referral", status: "OFFER", applicationDate: "2026-09-01", followUpDate: "2026-10-15", interviewDate: "", notes: "Offer received; reply by Oct 15." },
+  { id: 8, companyName: "Accenture", jobTitle: "Associate Software Engineer", jobUrl: "", source: "Campus", status: "SAVED", applicationDate: "", followUpDate: "", interviewDate: "", notes: "" },
+  { id: 9, companyName: "Capgemini", jobTitle: "Analyst Intern", jobUrl: "https://example.com/jobs/9", source: "Company Website", status: "APPLIED", applicationDate: "2026-10-05", followUpDate: "2026-10-19", interviewDate: "", notes: "" },
+  { id: 10, companyName: "Swiggy", jobTitle: "SDE Intern", jobUrl: "https://example.com/jobs/10", source: "LinkedIn", status: "INTERVIEW", applicationDate: "2026-09-18", followUpDate: "", interviewDate: "2026-10-22T15:30", notes: "DSA + system design basics." },
+];
