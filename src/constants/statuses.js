@@ -1,5 +1,5 @@
 // Single source of truth for application statuses.
-// Keep these values identical to the backend enum later (Week 2).
+// Keep these values identical to the backend ApplicationStatus enum.
 export const STATUSES = [
   { value: "SAVED", label: "Saved", color: "#5b6873" },
   { value: "APPLIED", label: "Applied", color: "#246b9e" },

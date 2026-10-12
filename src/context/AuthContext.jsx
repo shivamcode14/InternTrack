@@ -1,31 +1,44 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import { apiRequest, readSession, saveSession } from "../services/api.js";
 
-// Week 1: FAKE auth (UI only). Week 2 replaces this with real login via the API.
 const AuthContext = createContext(null);
-const KEY = "interntrack_user";
-
-function load() {
-  try {
-    const v = sessionStorage.getItem(KEY);
-    return v ? JSON.parse(v) : null;
-  } catch {
-    return null;
-  }
-}
-function save(user) {
-  try {
-    if (user) sessionStorage.setItem(KEY, JSON.stringify(user));
-    else sessionStorage.removeItem(KEY);
-  } catch {
-    /* storage unavailable: app still works for this tab */
-  }
-}
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(load);
-  const login = (u) => { setUser(u); save(u); };
-  const logout = () => { setUser(null); save(null); };
-  return <AuthContext.Provider value={{ user, login, logout }}>{children}</AuthContext.Provider>;
+  const [session, setSession] = useState(readSession);
+  const user = session?.user || null;
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      saveSession(null);
+      setSession(null);
+    };
+    window.addEventListener("interntrack:unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("interntrack:unauthorized", handleUnauthorized);
+  }, []);
+
+  const authenticate = async (path, credentials) => {
+    const result = await apiRequest(path, {
+      method: "POST",
+      body: JSON.stringify(credentials),
+    });
+    const nextSession = { token: result.token, user: result.user };
+    saveSession(nextSession);
+    setSession(nextSession);
+    return result.user;
+  };
+
+  const login = (credentials) => authenticate("/auth/login", credentials);
+  const register = (credentials) => authenticate("/auth/register", credentials);
+  const logout = () => {
+    saveSession(null);
+    setSession(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, login, register, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

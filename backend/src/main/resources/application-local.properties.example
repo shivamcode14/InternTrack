@@ -1,0 +1,5 @@
+# Copy this file to application-local.properties and set your local values.
+# Do not commit application-local.properties; it is ignored by Git.
+spring.datasource.username=root
+spring.datasource.password=root@127.0.0.1:3306
+app.jwt.secret=CHANGE_ME_TO_A_RANDOM_SECRET_WITH_AT_LEAST_32_CHARACTERS

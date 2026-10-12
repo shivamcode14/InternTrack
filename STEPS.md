@@ -1,28 +1,29 @@
-# InternTrack — Week 1: Step-by-Step Guide
+# InternTrack — Step-by-Step Guide
 
-This project is the **finished Week 1 prototype** (React UI + sample data, no backend).
+This project contains the **finished Week 1 React prototype and Week 2 Spring Boot + MySQL backend**.
 You can use this guide two ways:
 
-- **Mode A — Run it:** do Part 1 and Part 2, then explore.
+- **Mode A — Run it:** do Part 1, Part 2, and Part 4, then explore.
 - **Mode B — Learn by rebuilding (recommended for your report/viva):** do Part 1, then create a fresh
-  Vite project and follow Part 3 day by day, writing each file yourself (use this project as the answer key).
+  Vite project and follow Part 3 and Part 5 day by day, writing each file yourself (use this project as the answer key).
 
 ---------------------------------------------------------------------
-## PART 1 — One-time setup (≈ 30 min)
+## PART 1 — Install the tools (≈ 45 min, one time)
 
-1. **Install Node.js (LTS)** from https://nodejs.org. Then check:
-   `node -v` (18 or higher) and `npm -v`.
-2. **Install VS Code** from https://code.visualstudio.com. Optional extensions: ES7 React snippets, Prettier.
-3. **Install Git** from https://git-scm.com and create a free GitHub account.
-4. **Unzip** `interntrack-web.zip` somewhere easy, e.g. `Documents/projects/`.
-5. Open the folder in VS Code (File → Open Folder), then open the terminal (Terminal → New Terminal).
+1. **JDK 17 or newer.** Download Temurin 17 from https://adoptium.net or use the JDK bundled with IntelliJ. Check it in a new terminal with `java -version`.
+2. **IntelliJ IDEA Community** from https://www.jetbrains.com/idea. IntelliJ includes Maven; you do not need to install Maven separately.
+3. **MySQL Community Server 8.x + MySQL Workbench** from https://dev.mysql.com/downloads. During installation, set a root password and remember it. Keep the default port `3306`.
+4. **Postman** from https://www.postman.com/downloads. A free account is fine.
+5. **Node.js LTS** from https://nodejs.org (18 or newer) and **Git** from https://git-scm.com if they are not already installed. Check with `node -v`, `npm -v`, and `git --version`.
+6. **VS Code** from https://code.visualstudio.com for the React frontend. Optional extensions: ES7 React snippets, Prettier.
+7. Unzip `interntrack-web.zip` somewhere easy, e.g. `Documents/projects/`, then open the project folder in VS Code and the `backend` folder as a project in IntelliJ IDEA.
 
-## PART 2 — Run the finished prototype (≈ 10 min)
+## PART 2 — Run the React app (≈ 10 min)
 
 1. In the terminal: `npm install`   (downloads libraries; takes 1–2 min)
 2. `npm run dev`
 3. Open the link shown (usually http://localhost:5173).
-4. Log in with any email (e.g. `you@example.com`) and any password — Week 1 login is **simulated**.
+4. Start the backend as described in Part 4, then register with a name, email, and password.
 5. Try everything: dashboard cards, search/filters, Add, Edit, Delete.
 6. Stop the server with `Ctrl + C`.
 
@@ -71,7 +72,7 @@ Files: `components/Field.jsx`, `utils/validation.js`, `pages/ApplicationForm.jsx
 2. `validation.js`: `validateApplication(values)` returns an object of errors:
    company required, job title required, URL must start with http/https, application date required unless status is Saved, notes ≤ 1000 chars.
 3. `ApplicationForm.jsx`: one `values` state object; `handleChange` updates it; `handleSubmit` validates, then calls
-   `addApplication` or `updateApplication` and navigates to `/applications`.
+   `addApplication` or `updateApplication` and navigates to `/applications`. In the finished app these context methods call the authenticated API.
 4. Edit mode: read `:id` with `useParams()`, load the record with `getApplication(id)` and pre-fill the form.
 5. Delete: add a confirm dialog (`window.confirm`) before `deleteApplication`.
 6. Bonus (from the report, P1): warn if the same job link already exists.
@@ -114,7 +115,59 @@ Files: `context/AuthContext.jsx`, `pages/Login.jsx`, `pages/Register.jsx`, `comp
 - **Blank page:** open the browser console (F12). A red error names the file and line to fix.
 - **"Port already in use":** another dev server is running; stop it with Ctrl + C or use the new port Vite prints.
 - **Changes not showing:** save the file (Ctrl + S) and check the terminal is still running `npm run dev`.
-- **Data disappears on refresh:** expected in Week 1; data is stored in memory until the backend arrives.
+- **Cannot connect / login fails:** confirm MySQL and the Spring Boot API are running, and check the API terminal for the first error.
+
+## PART 4 — Run the full-stack application (Mode A)
+
+The completed backend lives in `backend/`. Start MySQL, then use IntelliJ IDEA and a terminal:
+
+**Start the API in IntelliJ IDEA**
+1. Open the `backend` folder (the one containing `pom.xml`) as a project and wait for Maven sync to finish.
+2. Open the Maven tool window. Expand `interntrack-api` → `Plugins` → `spring-boot`, then double-click `spring-boot:run`.
+3. Copy `backend/src/main/resources/application-local.properties.example` to `application-local.properties` in that resources folder, then set your MySQL root password and a private random JWT secret with at least 32 characters. The new local file is git-ignored; do not commit it.
+4. The API starts on http://localhost:8080. Keep the run configuration active.
+
+**Terminal — React app**, from the folder containing `package.json`:
+```powershell
+npm install
+npm run dev
+```
+
+Open the Vite URL, register a new account, and create an application. The API creates the `interntrack` database when the MySQL account has permission; otherwise create it first with `CREATE DATABASE interntrack;`. For a shared deployment, configure `JWT_SECRET` with a private random string of at least 32 characters and set `CORS_ALLOWED_ORIGINS` to the frontend origin.
+
+## PART 5 — Week 2 backend learning path (Mode B)
+
+For the Week 2 tool installation, backend run instructions, Postman walkthrough, and project-rebuild setup, see [STEPS-WEEK2.md](./STEPS-WEEK2.md). Use the completed `backend/` as the answer key. Work through these topics in order, writing the implementation yourself in a fresh branch or copy:
+
+1. **Spring Boot and MySQL:** inspect `backend/pom.xml` and `application.properties`; run the API and observe JPA create the tables.
+2. **Users and registration:** build the user entity/repository and registration endpoint; store only BCrypt password hashes and make email unique.
+3. **Login and API security:** authenticate credentials, sign a short-lived bearer token, and protect routes with Spring Security.
+4. **Application persistence:** model the application fields, connect each record to its owner, and implement CRUD endpoints.
+5. **Authorization and validation:** scope every read/write by the authenticated owner; verify that another account cannot read, edit, or delete the record.
+6. **React integration:** connect auth and application state to API calls; inspect browser network requests and error handling.
+7. **Test and document:** build the frontend, run backend tests, and exercise registration, login, CRUD, invalid input, and cross-user access in Postman.
+
+### API request examples
+
+Register with `POST /api/auth/register`:
+```json
+{"name":"Alex","email":"alex@example.com","password":"example-password"}
+```
+
+Send the returned token in the `Authorization: Bearer YOUR_TOKEN` header. Create an application with `POST /api/applications`:
+```json
+{
+  "companyName":"Example Co",
+  "jobTitle":"Software Engineer Intern",
+  "jobUrl":"https://example.com/jobs/1",
+  "source":"Company Website",
+  "status":"APPLIED",
+  "applicationDate":"2026-10-11",
+  "followUpDate":null,
+  "interviewDate":null,
+  "notes":"Applied on the company careers page."
+}
+```
 
 ## Done-when checklist for Week 1
 - [ ] Add, edit, delete work; validation messages show

@@ -4,12 +4,12 @@ import Field from "../components/Field.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { validateRegister } from "../utils/validation.js";
 
-// Week 1: FAKE registration (nothing is stored on a server).
 export default function Register() {
-  const { login } = useAuth();
+  const { register } = useAuth();
   const navigate = useNavigate();
   const [values, setValues] = useState({ name: "", email: "", password: "", confirm: "" });
   const [errors, setErrors] = useState({});
+  const [requestError, setRequestError] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -17,17 +17,28 @@ export default function Register() {
     if (errors[name]) setErrors((er) => ({ ...er, [name]: undefined }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setRequestError("");
     const found = validateRegister(values);
     if (Object.keys(found).length) return setErrors(found);
-    login({ name: values.name.trim(), email: values.email.trim() });
-    navigate("/dashboard");
+    try {
+      await register({
+        name: values.name.trim(),
+        email: values.email.trim(),
+        password: values.password,
+      });
+      navigate("/dashboard");
+    } catch (error) {
+      setErrors(error.fieldErrors || {});
+      setRequestError(error.message);
+    }
   };
 
   return (
     <div className="auth-card">
       <h1>Create your account</h1>
+      {requestError && <p className="error" role="alert">{requestError}</p>}
       <form onSubmit={handleSubmit} noValidate>
         <Field label="Name" name="name" autoComplete="name" value={values.name} onChange={handleChange} error={errors.name} required />
         <Field label="Email" name="email" type="email" autoComplete="email" value={values.email} onChange={handleChange} error={errors.email} required />

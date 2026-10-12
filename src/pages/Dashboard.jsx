@@ -6,7 +6,7 @@ import { STATUSES } from "../constants/statuses.js";
 import { parseLocal, formatDate, startOfToday, daysUntil } from "../utils/dates.js";
 
 export default function Dashboard() {
-  const { applications } = useApplications();
+  const { applications, loading, error, refreshApplications } = useApplications();
 
   // Counts per status (Day 5)
   const counts = useMemo(() => {
@@ -44,6 +44,10 @@ export default function Dashboard() {
         <h1>Dashboard</h1>
         <Link className="btn btn-primary" to="/applications/new">+ Add application</Link>
       </div>
+
+      {error && <p className="error" role="alert">{error}</p>}
+      {error && <button className="btn btn-outline" onClick={refreshApplications}>Retry loading</button>}
+      {loading && <p className="muted">Loading applications…</p>}
 
       <div className="stat-grid">
         <div className="stat-card stat-total">

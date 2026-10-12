@@ -1,0 +1,959 @@
+{
+  "info": {
+    "_postman_id": "56ac1bf4-ef69-4dbe-a818-9ea4b66d5678",
+    "name": "InternTrack API",
+    "description": "End-to-end smoke tests for registration, login, ownership-aware application CRUD, and deleted-record handling. Run requests in order.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "email",
+      "value": ""
+    },
+    {
+      "key": "password",
+      "value": "password123"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "applicationId",
+      "value": ""
+    },
+    {
+      "key": "emailB",
+      "value": ""
+    },
+    {
+      "key": "tokenA",
+      "value": ""
+    },
+    {
+      "key": "tokenB",
+      "value": ""
+    },
+    {
+      "key": "followUpDate",
+      "value": ""
+    },
+    {
+      "key": "interviewDate",
+      "value": ""
+    },
+    {
+      "key": "emptyDateApplicationId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Protected application list requires a token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Protected application list rejects missing token', () => pm.response.to.have.status(401));",
+              "pm.test('Unauthorized response is JSON', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json'));",
+              "pm.test('Unauthorized response has a useful message', () => pm.expect(pm.response.json().message).to.eql('Authentication required.'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/applications",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "applications"
+          ]
+        }
+      }
+    },
+    {
+      "name": "1. Register unique user",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('email', `wk2-${Date.now()}-${Math.floor(Math.random() * 100000)}@example.com`);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Registration returns 201 Created', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.test('Registration returns a token', () => pm.expect(body.token).to.be.a('string').and.not.empty);",
+              "pm.test('Registration returns the new user email', () => pm.expect(body.user.email).to.eql(pm.collectionVariables.get('email')));",
+              "pm.test('Registration does not return a password', () => pm.expect(body.user).not.to.have.property('password'));",
+              "const encodedPayload = body.token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');",
+              "const paddedPayload = encodedPayload + '='.repeat((4 - encodedPayload.length % 4) % 4);",
+              "const claims = JSON.parse(CryptoJS.enc.Base64.parse(paddedPayload).toString(CryptoJS.enc.Utf8));",
+              "pm.test('JWT subject is the registered user ID', () => pm.expect(claims.sub).to.eql(String(body.user.id)));",
+              "pm.collectionVariables.set('token', body.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Week Two Tester\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "register"
+          ]
+        }
+      }
+    },
+    {
+      "name": "1b. Duplicate registration returns conflict",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Duplicate registration returns 409 Conflict', () => pm.response.to.have.status(409));",
+              "pm.test('Duplicate registration explains the conflict', () => pm.expect(pm.response.json().message).to.include('already exists'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Week Two Tester\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "register"
+          ]
+        }
+      }
+    },
+    {
+      "name": "1c. Wrong password returns unauthorized",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Wrong password returns 401 Unauthorized', () => pm.response.to.have.status(401));",
+              "pm.test('Wrong password uses the generic authentication message', () => pm.expect(pm.response.json().message).to.eql('Invalid email or password.'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"intentionally-wrong-password\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "2. Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login returns 200 OK', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('Login returns a token', () => pm.expect(body.token).to.be.a('string').and.not.empty);",
+              "pm.test('Login identifies the expected account', () => pm.expect(body.user.email).to.eql(pm.collectionVariables.get('email')));",
+              "pm.collectionVariables.set('token', body.token);",
+              "pm.collectionVariables.set('tokenA', body.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "3. Get current user",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Current-user request returns 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Current-user response belongs to the signed-in account', () => pm.expect(pm.response.json().email).to.eql(pm.collectionVariables.get('email')));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "me"
+          ]
+        }
+      }
+    },
+    {
+      "name": "4. Missing company is rejected",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Missing company returns 400 Bad Request', () => pm.response.to.have.status(400));",
+              "pm.test('Validation response identifies companyName', () => pm.expect(pm.response.json().fieldErrors).to.have.property('companyName'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"jobTitle\": \"Software Engineer Intern\",\n  \"jobUrl\": \"https://example.com/jobs/postman-test\",\n  \"source\": \"Company Website\",\n  \"status\": \"APPLIED\",\n  \"applicationDate\": \"2026-10-11\",\n  \"followUpDate\": null,\n  \"interviewDate\": null,\n  \"notes\": \"This request intentionally omits companyName.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/applications",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "applications"
+          ]
+        }
+      }
+    },
+    {
+      "name": "5. Create application",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const followUp = new Date();",
+              "followUp.setDate(followUp.getDate() + 2);",
+              "pm.collectionVariables.set('followUpDate', followUp.toISOString().slice(0, 10));",
+              "const interview = new Date();",
+              "interview.setDate(interview.getDate() + 1);",
+              "pm.collectionVariables.set('interviewDate', `${interview.toISOString().slice(0, 10)}T10:00:00`);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Application creation returns 201 Created', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.test('Created application has the expected company', () => pm.expect(body.companyName).to.eql('Postman Example Co'));",
+              "pm.test('Created application has a database ID', () => pm.expect(body.id).to.be.a('number'));",
+              "pm.collectionVariables.set('applicationId', body.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"companyName\": \"Postman Example Co\",\n  \"jobTitle\": \"Software Engineer Intern\",\n  \"jobUrl\": \"https://example.com/jobs/postman-test\",\n  \"source\": \"Company Website\",\n  \"status\": \"APPLIED\",\n  \"applicationDate\": \"2026-10-11\",\n  \"followUpDate\": \"{{followUpDate}}\",\n  \"interviewDate\": \"{{interviewDate}}\",\n  \"notes\": \"Created by the Postman smoke-test collection.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/applications",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "applications"
+          ]
+        }
+      }
+    },
+    {
+      "name": "5a. Dashboard statistics are scoped and zero-filled",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Dashboard statistics return 200 OK', () => pm.response.to.have.status(200));",
+              "const stats = pm.response.json();",
+              "pm.test('Dashboard total matches the one application created for user A', () => pm.expect(stats.total).to.eql(1));",
+              "pm.test('Dashboard counts APPLIED and zero-fills unused statuses', () => { pm.expect(stats.countsByStatus.APPLIED).to.eql(1); pm.expect(stats.countsByStatus.SAVED).to.eql(0); pm.expect(stats.countsByStatus.REJECTED).to.eql(0); });",
+              "pm.test('Dashboard recent applications contain the created record', () => pm.expect(stats.recent.some(item => item.id === Number(pm.collectionVariables.get('applicationId')))).to.eql(true));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/dashboard/stats",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "dashboard",
+            "stats"
+          ]
+        }
+      }
+    },
+    {
+      "name": "5ab. Search and filter applications",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Filtered applications return 200 OK', () => pm.response.to.have.status(200));",
+              "const page = pm.response.json();",
+              "pm.test('Filtered page contains the matching application', () => pm.expect(page.content.some(item => item.id === Number(pm.collectionVariables.get('applicationId')))).to.eql(true));",
+              "pm.test('Filtered response includes pagination metadata', () => { pm.expect(page.page).to.eql(0); pm.expect(page.size).to.eql(5); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/applications?q=Postman%20Example%20Co&status=APPLIED&source=Company%20Website&page=0&size=5",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "applications"
+          ],
+          "query": [
+            {
+              "key": "q",
+              "value": "Postman Example Co"
+            },
+            {
+              "key": "status",
+              "value": "APPLIED"
+            },
+            {
+              "key": "source",
+              "value": "Company Website"
+            },
+            {
+              "key": "page",
+              "value": "0"
+            },
+            {
+              "key": "size",
+              "value": "5"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "5ac. Empty date inputs are accepted as null",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Application with empty date strings returns 201 Created', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.test('Empty date fields are returned as null', () => { pm.expect(body.applicationDate).to.eql(null); pm.expect(body.followUpDate).to.eql(null); pm.expect(body.interviewDate).to.eql(null); });",
+              "pm.collectionVariables.set('emptyDateApplicationId', body.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"companyName\": \"Empty Dates Example Co\",\n  \"jobTitle\": \"Saved Internship\",\n  \"source\": \"Company Website\",\n  \"status\": \"SAVED\",\n  \"applicationDate\": \"\",\n  \"followUpDate\": \"\",\n  \"interviewDate\": \"\",\n  \"notes\": \"Tests empty date string handling.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/applications",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "applications"
+          ]
+        }
+      }
+    },
+    {
+      "name": "5ad. Delete empty-date test application",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Empty-date test application cleanup returns 204', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/api/applications/{{emptyDateApplicationId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "applications",
+            "{{emptyDateApplicationId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "5b. Register second user for ownership check",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('emailB', `wk2-owner-${Date.now()}-${Math.floor(Math.random() * 100000)}@example.com`);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Second user registration returns 201 Created', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.test('Second user receives a token', () => pm.expect(body.token).to.be.a('string').and.not.empty);",
+              "pm.collectionVariables.set('tokenB', body.token);",
+              "pm.collectionVariables.set('token', body.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Second Ownership Tester\",\n  \"email\": \"{{emailB}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "register"
+          ]
+        }
+      }
+    },
+    {
+      "name": "5c. User B cannot read user A's application (TC-04)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('User B GET of user A application returns 404', () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/applications/{{applicationId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "applications",
+            "{{applicationId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "5d. User B cannot update user A's application (TC-04)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('User B PUT of user A application returns 404', () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"companyName\": \"Postman Example Co\",\n  \"jobTitle\": \"Unauthorized update attempt\",\n  \"status\": \"SAVED\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/applications/{{applicationId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "applications",
+            "{{applicationId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "5e. User B cannot delete user A's application (TC-04)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('User B DELETE of user A application returns 404', () => pm.response.to.have.status(404));",
+              "pm.collectionVariables.set('token', pm.collectionVariables.get('tokenA'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/api/applications/{{applicationId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "applications",
+            "{{applicationId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "5aa. Upcoming reminders are soonest first (TC-07)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Upcoming reminders return 200 OK', () => pm.response.to.have.status(200));",
+              "const reminders = pm.response.json();",
+              "pm.test('Reminders include the created interview and follow-up', () => pm.expect(reminders.filter(item => item.applicationId === Number(pm.collectionVariables.get('applicationId'))).length).to.eql(2));",
+              "pm.test('Reminders are sorted by date ascending', () => pm.expect(reminders.map(item => Date.parse(item.date))).to.eql([...reminders].map(item => Date.parse(item.date)).sort((a, b) => a - b)));",
+              "pm.test('Reminder limit is respected', () => pm.expect(reminders.length).to.be.at.most(8));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenA}}",
+              "type": "string"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/reminders/upcoming?limit=8",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "reminders",
+            "upcoming"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "8"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "6. Get my application",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Application GET returns 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('GET returns the requested application', () => pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get('applicationId'))));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/applications/{{applicationId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "applications",
+            "{{applicationId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "7. List my applications",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Application list returns 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Application list contains the created record', () => pm.expect(pm.response.json().content.some(item => item.id === Number(pm.collectionVariables.get('applicationId')))).to.eql(true));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/applications",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "applications"
+          ]
+        }
+      }
+    },
+    {
+      "name": "8. Update my application",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Application update returns 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Application title was updated', () => pm.expect(pm.response.json().jobTitle).to.eql('Updated Software Engineer Intern'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"companyName\": \"Postman Example Co\",\n  \"jobTitle\": \"Updated Software Engineer Intern\",\n  \"jobUrl\": \"https://example.com/jobs/postman-test\",\n  \"source\": \"Company Website\",\n  \"status\": \"APPLIED\",\n  \"applicationDate\": \"2026-10-11\",\n  \"followUpDate\": null,\n  \"interviewDate\": null,\n  \"notes\": \"Updated by the Postman smoke-test collection.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/applications/{{applicationId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "applications",
+            "{{applicationId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "9. Delete my application",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Application deletion returns 204 No Content', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/api/applications/{{applicationId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "applications",
+            "{{applicationId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "10. Deleted application is no longer listed",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Application list returns 200 OK after deletion', () => pm.response.to.have.status(200));",
+              "pm.test('Deleted application is absent from the list', () => pm.expect(pm.response.json().content.some(item => item.id === Number(pm.collectionVariables.get('applicationId')))).to.eql(false));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/applications",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "applications"
+          ]
+        }
+      }
+    }
+  ]
+}

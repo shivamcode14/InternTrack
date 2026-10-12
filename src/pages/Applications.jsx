@@ -6,7 +6,7 @@ import { STATUSES, SOURCES } from "../constants/statuses.js";
 import { formatDate } from "../utils/dates.js";
 
 export default function Applications() {
-  const { applications, deleteApplication } = useApplications();
+  const { applications, loading, error, refreshApplications, deleteApplication } = useApplications();
   const [params, setParams] = useSearchParams();
 
   // Filters (Day 4). Dashboard cards link here with ?status=APPLIED
@@ -41,9 +41,15 @@ export default function Applications() {
     });
   };
 
-  const handleDelete = (a) => {
+  const [actionError, setActionError] = useState("");
+  const handleDelete = async (a) => {
     if (window.confirm(`Delete "${a.jobTitle}" at ${a.companyName}? This cannot be undone.`)) {
-      deleteApplication(a.id);
+      setActionError("");
+      try {
+        await deleteApplication(a.id);
+      } catch (requestError) {
+        setActionError(requestError.message);
+      }
     }
   };
 
@@ -53,6 +59,10 @@ export default function Applications() {
         <h1>Applications <span className="muted count">({filtered.length} of {applications.length})</span></h1>
         <Link className="btn btn-primary" to="/applications/new">+ Add application</Link>
       </div>
+
+      {(error || actionError) && <p className="error" role="alert">{actionError || error}</p>}
+      {error && <button className="btn btn-outline" onClick={refreshApplications}>Retry loading</button>}
+      {loading && <p className="muted">Loading applications…</p>}
 
       <div className="filters" role="search">
         <input
@@ -73,7 +83,7 @@ export default function Applications() {
         {hasFilters && <button className="btn btn-outline" onClick={clearFilters}>Clear filters</button>}
       </div>
 
-      {filtered.length === 0 ? (
+      {loading ? null : filtered.length === 0 ? (
         <div className="empty">
           <p>{applications.length === 0 ? "No applications yet." : "No applications match your search or filters."}</p>
           {hasFilters ? (
