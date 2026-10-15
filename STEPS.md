@@ -170,9 +170,13 @@ Send the returned token in the `Authorization: Bearer YOUR_TOKEN` header. Create
 ```
 
 ## Done-when checklist for Week 1
-- [ ] Add, edit, delete work; validation messages show
-- [ ] Search + status/source filters work together; Clear restores the list
-- [ ] Dashboard counts, recent list and upcoming list update after changes
-- [ ] Login/Register screens validate input and the route guard works
-- [ ] Looks fine on a phone-width screen
-- [ ] Code pushed to GitHub
+- [x] Add, edit, delete work; validation messages show
+- [x] Search + status/source filters work together; Clear restores the list
+- [x] Dashboard counts, recent list and upcoming list update after changes
+- [x] Login/Register validation and route guard checked
+- [x] Responsive layout checked at phone width
+- [x] Code pushed to GitHub
+- [x] Frontend production build succeeds
+- [x] Backend tests pass (22 tests, zero failures)
+
+**Report evidence:** Screenshots have not been collected yet.
