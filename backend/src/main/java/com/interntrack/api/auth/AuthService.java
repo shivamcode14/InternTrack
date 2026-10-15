@@ -19,6 +19,8 @@ import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.JwsHeader;
 
 @Service
 public class AuthService {
@@ -76,7 +78,12 @@ public class AuthService {
                 .claim("email", user.getEmail())
                 .claim("name", user.getName())
                 .build();
-        String token = jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
+        String token = jwtEncoder.encode(
+        JwtEncoderParameters.from(
+                	JwsHeader.with(MacAlgorithm.HS256).build(),
+                	claims
+        	)
+	).getTokenValue();
         return new AuthResponse(token, "Bearer", UserResponse.from(user));
     }
 
