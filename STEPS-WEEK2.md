@@ -174,3 +174,28 @@ This part is for learning by rebuilding in a **separate fresh folder**. Keep the
 6. Start the app from IntelliJ. At this early stage, Spring Security may log a generated development password; that is expected until you implement your own authentication. Once JWT security is configured, use the app's configured bearer-token flow instead.
 
 **Check:** Maven dependencies finish syncing, the application starts without datasource or configuration errors, and MySQL Workbench shows the `interntrack` schema. After adding entities and running JPA, refresh to see the tables.
+
+## Live verification log — 15 Oct 2026
+
+### Verified successfully
+- [x] Frontend production build succeeds.
+- [x] Backend unit tests pass: 22 tests, zero failures.
+- [x] Unauthenticated GET /api/applications returns 401.
+- [x] Login endpoint returns a bearer token.
+- [x] GET /api/me returns the authenticated user.
+- [x] Authenticated GET /api/applications returns the user's application list.
+- [x] GET /api/dashboard/stats returns application statistics.
+- [x] GET /api/reminders/upcoming returns a valid empty list when no reminders are due.
+- [x] React dashboard displays application counts and the recent application.
+- [x] Applications page displays the existing Google application with status APPLIED.
+- [x] Git working tree was clean before this documentation update.
+- [x] application-local.properties is ignored by Git.
+
+### Pending verification and follow-up
+- [ ] Investigate GET /api/dashboard returning HTTP 500. The supported stats endpoint /api/dashboard/stats works.
+- [ ] Run the complete Postman collection and verify its live assertions.
+- [ ] Verify registration, duplicate registration, wrong-password login, validation, and cross-user ownership checks through the live Postman suite.
+- [ ] Collect screenshots for the project report.
+- [ ] Review the documentation update, then commit and push when ready.
+
+Note: Passing unit tests and individual API checks do not mean the full Postman suite has passed. Do not mark pending items complete until they are verified.
