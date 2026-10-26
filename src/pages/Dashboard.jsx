@@ -1,108 +1,305 @@
+
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useApplications } from "../context/ApplicationsContext.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
 import { STATUSES } from "../constants/statuses.js";
-import { parseLocal, formatDate, startOfToday, daysUntil } from "../utils/dates.js";
+import {
+  parseLocal,
+  formatDate,
+  startOfToday,
+  daysUntil,
+} from "../utils/dates.js";
 
 export default function Dashboard() {
-  const { applications, loading, error, refreshApplications } = useApplications();
+  const {
+    applications,
+    loading,
+    error,
+    refreshApplications,
+  } = useApplications();
 
-  // Counts per status (Day 5)
   const counts = useMemo(() => {
-    const c = Object.fromEntries(STATUSES.map((s) => [s.value, 0]));
-    applications.forEach((a) => { c[a.status] = (c[a.status] || 0) + 1; });
-    return c;
+    const result = Object.fromEntries(
+      STATUSES.map((status) => [status.value, 0])
+    );
+
+    applications.forEach((application) => {
+      result[application.status] =
+        (result[application.status] || 0) + 1;
+    });
+
+    return result;
   }, [applications]);
 
-  // Most recently added = highest id
-  const recent = useMemo(() => [...applications].sort((a, b) => b.id - a.id).slice(0, 5), [applications]);
+  const recent = useMemo(
+    () =>
+      [...applications]
+        .sort((a, b) => b.id - a.id)
+        .slice(0, 5),
+    [applications]
+  );
 
-  // Upcoming follow-ups + interviews (today or later), soonest first
-  const upcoming = useMemo(() => {
+  // Separate overdue reminders from today and future reminders.
+  const { overdue, upcoming } = useMemo(() => {
     const today = startOfToday();
-    const items = [];
-    applications.forEach((a) => {
-      const f = parseLocal(a.followUpDate);
-      if (f && f >= today) items.push({ key: `f${a.id}`, date: f, raw: a.followUpDate, type: "Follow-up", app: a });
-      const i = parseLocal(a.interviewDate);
-      if (i && i >= today) items.push({ key: `i${a.id}`, date: i, raw: a.interviewDate, type: "Interview", app: a });
+    const overdueItems = [];
+    const upcomingItems = [];
+
+    const addReminder = (application, type, raw, key) => {
+      const date = parseLocal(raw);
+
+      if (!date || Number.isNaN(date.getTime())) {
+        return;
+      }
+
+      // Compare calendar dates, so an interview earlier today
+      // is still labelled Today instead of Overdue.
+      const calendarDate = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate()
+      );
+
+      const reminder = {
+        key,
+        date,
+        raw,
+        type,
+        app: application,
+      };
+
+      if (calendarDate < today) {
+        overdueItems.push(reminder);
+      } else {
+        upcomingItems.push(reminder);
+      }
+    };
+
+    applications.forEach((application) => {
+      addReminder(
+        application,
+        "Follow-up",
+        application.followUpDate,
+        `f${application.id}`
+      );
+
+      addReminder(
+        application,
+        "Interview",
+        application.interviewDate,
+        `i${application.id}`
+      );
     });
-    return items.sort((x, y) => x.date - y.date).slice(0, 8);
+
+    // Most recently overdue first; upcoming dates earliest first.
+    overdueItems.sort((a, b) => b.date - a.date);
+    upcomingItems.sort((a, b) => a.date - b.date);
+
+    return {
+      overdue: overdueItems.slice(0, 8),
+      upcoming: upcomingItems.slice(0, 8),
+    };
   }, [applications]);
 
   const whenLabel = (date) => {
-    const d = daysUntil(date);
-    if (d === 0) return "Today";
-    if (d === 1) return "Tomorrow";
-    return `In ${d} days`;
+    const days = daysUntil(date);
+
+    if (days === 0) return "Today";
+    if (days === 1) return "Tomorrow";
+
+    return `In ${days} days`;
+  };
+
+  const renderReminder = (reminder, isOverdue = false) => {
+    const days = daysUntil(reminder.date);
+
+    let color = "#166534";
+    let background = "#f0fdf4";
+    let label = whenLabel(reminder.date);
+
+    if (isOverdue) {
+      color = "#b91c1c";
+      background = "#fef2f2";
+      label = "Overdue";
+    } else if (days === 0) {
+      color = "#b45309";
+      background = "#fffbeb";
+    } else if (days === 1) {
+      color = "#1d4ed8";
+      background = "#eff6ff";
+    }
+
+    return (
+      <li key={reminder.key}>
+        <Link
+          to={`/applications/${reminder.app.id}`}
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: ".75rem",
+            width: "100%",
+            color: "inherit",
+            textDecoration: "none",
+          }}
+        >
+          <div>
+            <strong>
+              {reminder.type} · {reminder.app.companyName}
+            </strong>
+
+            <div className="muted small">
+              {reminder.app.jobTitle}
+            </div>
+
+            <div className="muted small">
+              {formatDate(reminder.raw, true)}
+            </div>
+          </div>
+
+          <span
+            className="badge"
+            style={{
+              color,
+              borderColor: color,
+              background,
+              flexShrink: 0,
+            }}
+          >
+            {label}
+          </span>
+        </Link>
+      </li>
+    );
   };
 
   return (
     <section>
       <div className="row-between">
         <h1>Dashboard</h1>
-        <Link className="btn btn-primary" to="/applications/new">+ Add application</Link>
+        <Link
+          className="btn btn-primary"
+          to="/applications/new"
+        >
+          + Add application
+        </Link>
       </div>
 
-      {error && <p className="error" role="alert">{error}</p>}
-      {error && <button className="btn btn-outline" onClick={refreshApplications}>Retry loading</button>}
-      {loading && <p className="muted">Loading applications…</p>}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+
+      {error && (
+        <button
+          className="btn btn-outline"
+          onClick={refreshApplications}
+        >
+          Retry loading
+        </button>
+      )}
+
+      {loading && (
+        <p className="muted">Loading applications...</p>
+      )}
 
       <div className="stat-grid">
         <div className="stat-card stat-total">
-          <span className="stat-num">{applications.length}</span>
+          <span className="stat-num">
+            {applications.length}
+          </span>
           <span className="stat-label">Total</span>
         </div>
-        {STATUSES.map((s) => (
-          <Link key={s.value} to={`/applications?status=${s.value}`} className="stat-card" style={{ borderTopColor: s.color }}>
-            <span className="stat-num" style={{ color: s.color }}>{counts[s.value]}</span>
-            <span className="stat-label">{s.label}</span>
+
+        {STATUSES.map((status) => (
+          <Link
+            key={status.value}
+            to={`/applications?status=${status.value}`}
+            className="stat-card"
+            style={{ borderTopColor: status.color }}
+          >
+            <span
+              className="stat-num"
+              style={{ color: status.color }}
+            >
+              {counts[status.value]}
+            </span>
+            <span className="stat-label">
+              {status.label}
+            </span>
           </Link>
         ))}
       </div>
 
       <div className="grid-2 panels">
         <div className="card">
-          <h2>Upcoming</h2>
-          {upcoming.length === 0 ? (
-            <p className="muted">Nothing coming up. Add a follow-up or interview date to an application.</p>
+          <h2>Smart reminders</h2>
+
+          {overdue.length === 0 && upcoming.length === 0 ? (
+            <p className="muted">
+              No reminders yet. Add a follow-up date or
+              interview date to an application.
+            </p>
           ) : (
-            <ul className="list">
-              {upcoming.map((u) => (
-                <li key={u.key}>
-                  <div>
-                    <strong>{u.type}</strong> · {u.app.companyName}
-                    <div className="muted small">{u.app.jobTitle}</div>
-                  </div>
-                  <div className="when">
-                    <div>{formatDate(u.raw, true)}</div>
-                    <div className="muted small">{whenLabel(u.date)}</div>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <>
+              {overdue.length > 0 && (
+                <>
+                  <h3 style={{ color: "#b91c1c" }}>
+                    Overdue
+                  </h3>
+                  <ul className="list">
+                    {overdue.map((reminder) =>
+                      renderReminder(reminder, true)
+                    )}
+                  </ul>
+                </>
+              )}
+
+              {upcoming.length > 0 && (
+                <>
+                  <h3>Today and upcoming</h3>
+                  <ul className="list">
+                    {upcoming.map((reminder) =>
+                      renderReminder(reminder)
+                    )}
+                  </ul>
+                </>
+              )}
+            </>
           )}
         </div>
 
         <div className="card">
           <h2>Recently added</h2>
+
           {recent.length === 0 ? (
-            <p className="muted">No applications yet.</p>
+            <p className="muted">
+              No applications yet.
+            </p>
           ) : (
             <ul className="list">
-              {recent.map((a) => (
-                <li key={a.id}>
+              {recent.map((application) => (
+                <li key={application.id}>
                   <div>
-                    <strong>{a.companyName}</strong>
-                    <div className="muted small">{a.jobTitle}</div>
+                    <strong>
+                      {application.companyName}
+                    </strong>
+                    <div className="muted small">
+                      {application.jobTitle}
+                    </div>
                   </div>
-                  <StatusBadge status={a.status} />
+
+                  <StatusBadge status={application.status} />
                 </li>
               ))}
             </ul>
           )}
-          <Link to="/applications">View all applications →</Link>
+
+          <Link to="/applications">
+            View all applications →
+          </Link>
         </div>
       </div>
     </section>
